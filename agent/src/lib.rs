@@ -6,8 +6,11 @@ use std::sync::{Mutex, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 pub mod enforcement;
+pub mod linux_guard;
 pub mod linux_provider;
+pub mod process_bridge;
 pub mod vault_bridge;
+pub mod windows_provider;
 
 const CONTRACT_VERSION: u16 = 2;
 const MAX_DECISIONS: usize = 24;

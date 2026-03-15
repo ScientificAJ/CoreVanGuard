@@ -2,7 +2,7 @@ use anyhow::{bail, Context};
 use std::env;
 use std::fs;
 use std::io::{self, Read};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 fn main() -> anyhow::Result<()> {
     let mut args = env::args().skip(1);
@@ -76,6 +76,42 @@ fn main() -> anyhow::Result<()> {
             )?;
             println!("{}", serde_json::to_string_pretty(&report)?);
         }
+        Some("linux-fanotify-guard") => {
+            let limit = args
+                .next()
+                .as_deref()
+                .and_then(|value| value.parse::<usize>().ok())
+                .unwrap_or(0);
+            let paths = args.map(PathBuf::from).collect::<Vec<_>>();
+            let report = corevanguard_agent::linux_guard::run_fanotify_guard(&paths, limit)?;
+            println!("{}", serde_json::to_string_pretty(&report)?);
+        }
+        Some("bridge-jsonl-run") => {
+            let limit = args
+                .next()
+                .context("bridge-jsonl-run requires a max-events value")?
+                .parse::<usize>()
+                .context("invalid max-events value")?;
+            let program = args
+                .next()
+                .context("bridge-jsonl-run requires a bridge executable path")?;
+            let bridge_args = args.collect::<Vec<_>>();
+            let report = corevanguard_agent::process_bridge::run_behavioral_bridge(
+                limit,
+                Path::new(&program),
+                &bridge_args,
+            )?;
+            println!("{}", serde_json::to_string_pretty(&report)?);
+        }
+        Some("windows-minifilter-run") => {
+            let limit = args
+                .next()
+                .as_deref()
+                .and_then(|value| value.parse::<usize>().ok())
+                .unwrap_or(0);
+            let report = corevanguard_agent::windows_provider::run_minifilter_bridge(limit)?;
+            println!("{}", serde_json::to_string_pretty(&report)?);
+        }
         Some("secure-vault-enroll") => {
             let label = args
                 .next()
@@ -92,7 +128,7 @@ fn main() -> anyhow::Result<()> {
             );
         }
         Some(other) => bail!(
-            "unknown command '{}'. expected one of: snapshot, ingest-json, ingest-json-enforce, provider-heartbeat, replay-jsonl, linux-scan, linux-ebpf-json, linux-ebpf-run, secure-vault-enroll",
+            "unknown command '{}'. expected one of: snapshot, ingest-json, ingest-json-enforce, provider-heartbeat, replay-jsonl, linux-scan, linux-ebpf-json, linux-ebpf-run, linux-fanotify-guard, bridge-jsonl-run, windows-minifilter-run, secure-vault-enroll",
             other
         ),
     }

@@ -28,6 +28,43 @@ fn run_linux_ebpf_loader(
 }
 
 #[tauri::command]
+fn run_linux_fanotify_guard(
+    limit: Option<usize>,
+    paths: Vec<String>,
+) -> Result<serde_json::Value, String> {
+    let guarded_paths = paths
+        .into_iter()
+        .map(std::path::PathBuf::from)
+        .collect::<Vec<_>>();
+    let report =
+        corevanguard_agent::linux_guard::run_fanotify_guard(&guarded_paths, limit.unwrap_or(0))
+            .map_err(|error| error.to_string())?;
+    serde_json::to_value(report).map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+fn run_behavioral_bridge(
+    limit: Option<usize>,
+    program: String,
+    args: Vec<String>,
+) -> Result<serde_json::Value, String> {
+    let report = corevanguard_agent::process_bridge::run_behavioral_bridge(
+        limit.unwrap_or(0),
+        Path::new(&program),
+        &args,
+    )
+    .map_err(|error| error.to_string())?;
+    serde_json::to_value(report).map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+fn run_windows_minifilter_bridge(limit: Option<usize>) -> Result<serde_json::Value, String> {
+    let report = corevanguard_agent::windows_provider::run_minifilter_bridge(limit.unwrap_or(0))
+        .map_err(|error| error.to_string())?;
+    serde_json::to_value(report).map_err(|error| error.to_string())
+}
+
+#[tauri::command]
 fn ingest_behavioral_event(
     event_json: String,
 ) -> Result<corevanguard_agent::DecisionOutcome, String> {
@@ -72,6 +109,9 @@ fn main() {
             get_dashboard_snapshot,
             run_linux_provider_scan,
             run_linux_ebpf_loader,
+            run_linux_fanotify_guard,
+            run_behavioral_bridge,
+            run_windows_minifilter_bridge,
             ingest_behavioral_event,
             ingest_behavioral_event_with_enforcement,
             register_provider_heartbeat,
