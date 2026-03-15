@@ -4,6 +4,8 @@ use std::collections::{HashMap, VecDeque};
 use std::sync::{Mutex, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 
+pub mod linux_provider;
+
 const CONTRACT_VERSION: u16 = 2;
 const MAX_DECISIONS: usize = 24;
 const MAX_TELEMETRY_POINTS: usize = 12;
@@ -1226,6 +1228,21 @@ pub fn dashboard_snapshot() -> DashboardSnapshot {
         .dashboard_snapshot()
 }
 
+pub fn apply_provider_heartbeat(heartbeat: ProviderHeartbeat) -> anyhow::Result<DashboardSnapshot> {
+    let mut engine = global_engine()
+        .lock()
+        .map_err(|_| anyhow!("engine lock poisoned"))?;
+    engine.apply_provider_heartbeat(heartbeat);
+    Ok(engine.dashboard_snapshot())
+}
+
+pub fn ingest_behavioral_event(event: BehavioralEvent) -> anyhow::Result<DecisionOutcome> {
+    let mut engine = global_engine()
+        .lock()
+        .map_err(|_| anyhow!("engine lock poisoned"))?;
+    Ok(engine.ingest_behavioral_event(event))
+}
+
 pub fn configure_vault_key(label: &str) -> anyhow::Result<&'static str> {
     global_engine()
         .lock()
@@ -1235,19 +1252,12 @@ pub fn configure_vault_key(label: &str) -> anyhow::Result<&'static str> {
 
 pub fn apply_provider_heartbeat_json(payload: &str) -> anyhow::Result<DashboardSnapshot> {
     let heartbeat: ProviderHeartbeat = serde_json::from_str(payload)?;
-    let mut engine = global_engine()
-        .lock()
-        .map_err(|_| anyhow!("engine lock poisoned"))?;
-    engine.apply_provider_heartbeat(heartbeat);
-    Ok(engine.dashboard_snapshot())
+    apply_provider_heartbeat(heartbeat)
 }
 
 pub fn ingest_behavioral_event_json(payload: &str) -> anyhow::Result<DecisionOutcome> {
     let event: BehavioralEvent = serde_json::from_str(payload)?;
-    let mut engine = global_engine()
-        .lock()
-        .map_err(|_| anyhow!("engine lock poisoned"))?;
-    Ok(engine.ingest_behavioral_event(event))
+    ingest_behavioral_event(event)
 }
 
 pub fn replay_behavioral_events_jsonl(payload: &str) -> anyhow::Result<Vec<DecisionOutcome>> {

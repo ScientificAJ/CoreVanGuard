@@ -1,6 +1,11 @@
-# Windows Driver Scaffold
+# Windows Driver
 
-This directory is reserved for the WDK-backed MiniFilter / KMDF project.
+This directory now contains a real MiniFilter source file at `CoreVanguardMiniFilter.c` with:
+
+- `IRP_MJ_CREATE`, `IRP_MJ_WRITE`, and `IRP_MJ_SET_INFORMATION` callbacks
+- protected-path denial logic for write, rename, and delete attempts
+- NTFS/ReFS instance filtering
+- standard `DriverEntry`, unload, and filter registration flow
 
 Expected future layout:
 
@@ -9,10 +14,9 @@ kernel/windows/
 ├── CoreVanguardMiniFilter.sln
 ├── CoreVanguardMiniFilter/
 │   ├── CoreVanguardMiniFilter.vcxproj
-│   ├── driver.c
+│   ├── CoreVanguardMiniFilter.c
 │   └── inf/
 └── signing/
 ```
 
-The CI workflow already targets `kernel/windows/CoreVanguardMiniFilter.sln`. Once the Visual Studio solution and project files land, the workflow will restore NuGet dependencies and build it on `windows-2022`.
-
+The CI workflow still targets `kernel/windows/CoreVanguardMiniFilter.sln`. The remaining work is to add the Visual Studio solution/project files, communication-port wiring to the Rust engine, and the process-protection callback path.

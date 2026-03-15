@@ -23,15 +23,17 @@ CoreVanguard is a monorepo for a next-generation antivirus stack that splits ker
 This repository is an honest starter, not a finished antivirus engine. What exists today:
 
 - `agent/` contains a real engine core with provider registration, behavioral event ingestion, tiered scoring, stateful process risk tracking, JSON replay support, and dashboard snapshot generation.
+- `agent/src/linux_provider.rs` performs a real Linux host scan from `/proc`, maps live sockets, inspects executable memory regions, registers provider heartbeats, and feeds observations into the engine.
 - `ui/` contains a real Tauri + React frontend structure with a dashboard, telemetry view, vault settings surface, and diagnostics tab.
 - `ui/src-tauri/` exposes Tauri commands against the shared Rust engine contract, including snapshot retrieval, provider heartbeats, and behavioral event ingestion.
-- `kernel/linux/` contains a minimal BPF program and build script proving the Linux pipeline shape.
-- `kernel/macos/` contains a minimal Endpoint Security compile target proving the macOS pipeline shape.
+- `kernel/linux/` contains an actual eBPF syscall monitor for exec/open/write/kill/ptrace plus the Linux build script.
+- `kernel/windows/` contains a real MiniFilter source file with create/write/set-information callbacks and protected-path denial logic.
+- `kernel/macos/` contains an Endpoint Security subscriber target for exec/open/signal/ptrace notifications.
 - `.github/workflows/` contains CI definitions for Windows, Linux, macOS, Tauri, and static analysis.
 
 What does not exist yet:
 
-- OS-native provider adapters that publish real kernel or user-mode events into the engine
+- Production-ready transport from the native Windows/macOS adapters into the Rust engine
 - A checked-in Windows WDK solution/project
 - Production signing/notarization material
 - The native secure-entry bridge for vault key enrollment
@@ -51,6 +53,7 @@ What does not exist yet:
 cargo check -p corevanguard-agent
 cargo test -p corevanguard-agent
 cargo run -p corevanguard-agent -- snapshot
+cargo run -p corevanguard-agent -- linux-scan 8
 ```
 
 ### UI

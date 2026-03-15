@@ -32,8 +32,17 @@ fn main() -> anyhow::Result<()> {
                 serde_json::to_string_pretty(&corevanguard_agent::dashboard_snapshot())?
             );
         }
+        Some("linux-scan") => {
+            let limit = args
+                .next()
+                .as_deref()
+                .and_then(|value| value.parse::<usize>().ok())
+                .unwrap_or(16);
+            let report = corevanguard_agent::linux_provider::run_host_scan(limit)?;
+            println!("{}", serde_json::to_string_pretty(&report)?);
+        }
         Some(other) => bail!(
-            "unknown command '{}'. expected one of: snapshot, ingest-json, provider-heartbeat, replay-jsonl",
+            "unknown command '{}'. expected one of: snapshot, ingest-json, provider-heartbeat, replay-jsonl, linux-scan",
             other
         ),
     }
