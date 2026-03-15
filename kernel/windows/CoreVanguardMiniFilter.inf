@@ -1,0 +1,50 @@
+[Version]
+Signature   = "$WINDOWS NT$"
+Class       = "ActivityMonitor"
+ClassGuid   = {b86dff51-a31e-4bac-b3cf-e8cfe75c9fc2}
+Provider    = %ManufacturerName%
+DriverVer   = 03/15/2026,1.0.0.0
+CatalogFile = CoreVanguardMiniFilter.cat
+PnpLockdown = 1
+
+[DestinationDirs]
+DefaultDestDir = 12
+
+[DefaultInstall]
+OptionDesc = %ServiceDescription%
+CopyFiles  = DriverCopyFiles
+
+[DefaultInstall.Services]
+AddService = %ServiceName%,,ServiceInstall
+
+[DriverCopyFiles]
+CoreVanguardMiniFilter.sys
+
+[ServiceInstall]
+DisplayName    = %ServiceDescription%
+Description    = %ServiceDescription%
+ServiceType    = 2
+StartType      = 3
+ErrorControl   = 1
+ServiceBinary  = %12%\CoreVanguardMiniFilter.sys
+LoadOrderGroup = "FSFilter Activity Monitor"
+Dependencies   = FltMgr
+AddReg         = Instances.AddReg
+
+[Instances.AddReg]
+HKR,"Instances","DefaultInstance",0x00000000,%DefaultInstance%
+HKR,"Instances\"%DefaultInstance%,"Altitude",0x00000000,"389200"
+HKR,"Instances\"%DefaultInstance%,"Flags",0x00010001,0x0
+
+[SourceDisksNames]
+1 = %DiskName%,,,
+
+[SourceDisksFiles]
+CoreVanguardMiniFilter.sys = 1
+
+[Strings]
+ManufacturerName  = "CoreVanguard"
+ServiceName       = "CoreVanguardMiniFilter"
+ServiceDescription = "CoreVanguard MiniFilter Driver"
+DefaultInstance   = "CoreVanguard MiniFilter Instance"
+DiskName          = "CoreVanguard MiniFilter Installation Media"

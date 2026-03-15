@@ -1,0 +1,204 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A10000000000000000000010 /* main.mm in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000001 /* main.mm */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		A10000000000000000000001 /* main.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = CoreVanguardES/main.mm; sourceTree = "<group>"; };
+		A10000000000000000000002 /* CoreVanguardES.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = CoreVanguardES/CoreVanguardES.entitlements; sourceTree = "<group>"; };
+		A10000000000000000000003 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = CoreVanguardES/Info.plist; sourceTree = "<group>"; };
+		A10000000000000000000004 /* CoreVanguardES */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = CoreVanguardES; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		A10000000000000000000005 = {
+			isa = PBXGroup;
+			children = (
+				A10000000000000000000006 /* Sources */,
+				A10000000000000000000007 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A10000000000000000000006 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				A10000000000000000000001 /* main.mm */,
+				A10000000000000000000003 /* Info.plist */,
+				A10000000000000000000002 /* CoreVanguardES.entitlements */,
+			);
+			path = "";
+			sourceTree = "<group>";
+		};
+		A10000000000000000000007 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A10000000000000000000004 /* CoreVanguardES */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A10000000000000000000008 /* CoreVanguardES */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A10000000000000000000009 /* Build configuration list for PBXNativeTarget "CoreVanguardES" */;
+			buildPhases = (
+				A1000000000000000000000A /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = CoreVanguardES;
+			productName = CoreVanguardES;
+			productReference = A10000000000000000000004 /* CoreVanguardES */;
+			productType = "com.apple.product-type.tool";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A1000000000000000000000B /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					A10000000000000000000008 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+				};
+			};
+			buildConfigurationList = A1000000000000000000000C /* Build configuration list for PBXProject "CoreVanguardES" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = A10000000000000000000005;
+			productRefGroup = A10000000000000000000007 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A10000000000000000000008 /* CoreVanguardES */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A1000000000000000000000A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10000000000000000000010 /* main.mm in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		A1000000000000000000000D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CODE_SIGN_ENTITLEMENTS = CoreVanguardES/CoreVanguardES.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				INFOPLIST_FILE = CoreVanguardES/Info.plist;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				OTHER_LDFLAGS = (
+					"-framework",
+					Foundation,
+					"-framework",
+					EndpointSecurity,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.corevanguard.es;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		A1000000000000000000000E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CODE_SIGN_ENTITLEMENTS = CoreVanguardES/CoreVanguardES.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				INFOPLIST_FILE = CoreVanguardES/Info.plist;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					Foundation,
+					"-framework",
+					EndpointSecurity,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.corevanguard.es;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		A1000000000000000000000F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		A10000000000000000000011 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A10000000000000000000009 /* Build configuration list for PBXNativeTarget "CoreVanguardES" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1000000000000000000000D /* Debug */,
+				A1000000000000000000000E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A1000000000000000000000C /* Build configuration list for PBXProject "CoreVanguardES" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1000000000000000000000F /* Debug */,
+				A10000000000000000000011 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = A1000000000000000000000B /* Project object */;
+}
+

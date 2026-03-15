@@ -371,7 +371,8 @@ impl CoreVanguardEngine {
             ProtectionLevel::Secure
         };
 
-        let (headline, message) = self.headline_and_message(&status, &provider_service, &pipeline_service);
+        let (headline, message) =
+            self.headline_and_message(&status, &provider_service, &pipeline_service);
 
         DashboardSnapshot {
             contract_version: CONTRACT_VERSION,
@@ -417,16 +418,19 @@ impl CoreVanguardEngine {
         let process_name = event.process_name().to_string();
         let provider_id = event.provider_id().to_string();
 
-        let ledger = self.ledgers.entry(process_id).or_insert_with(|| ProcessLedger {
-            process_name: process_name.clone(),
-            cumulative_score: 0,
-            event_count: 0,
-            high_entropy_writes: 0,
-            cross_process_threads: 0,
-            beacon_count: 0,
-            last_seen_unix: now,
-            last_action: DecisionAction::Observe,
-        });
+        let ledger = self
+            .ledgers
+            .entry(process_id)
+            .or_insert_with(|| ProcessLedger {
+                process_name: process_name.clone(),
+                cumulative_score: 0,
+                event_count: 0,
+                high_entropy_writes: 0,
+                cross_process_threads: 0,
+                beacon_count: 0,
+                last_seen_unix: now,
+                last_action: DecisionAction::Observe,
+            });
 
         ledger.process_name = process_name.clone();
         ledger.last_seen_unix = now;
@@ -478,7 +482,10 @@ impl CoreVanguardEngine {
                 if *cross_process {
                     tier1_score += 16;
                     ledger.cross_process_threads += 1;
-                    reasons.push(format!("cross-process thread activity against {}", target_process));
+                    reasons.push(format!(
+                        "cross-process thread activity against {}",
+                        target_process
+                    ));
                 }
 
                 match origin {
@@ -555,17 +562,26 @@ impl CoreVanguardEngine {
                     Reputation::Trusted => {}
                     Reputation::Unknown => {
                         tier1_score += 6;
-                        reasons.push(format!("outbound connection to unclassified destination {}:{}", remote_address, remote_port));
+                        reasons.push(format!(
+                            "outbound connection to unclassified destination {}:{}",
+                            remote_address, remote_port
+                        ));
                     }
                     Reputation::Suspicious => {
                         tier1_score += 18;
                         tier2_score += 10;
-                        reasons.push(format!("outbound connection to suspicious destination {}:{}", remote_address, remote_port));
+                        reasons.push(format!(
+                            "outbound connection to suspicious destination {}:{}",
+                            remote_address, remote_port
+                        ));
                     }
                     Reputation::Malicious => {
                         tier2_score += 26;
                         tier3_score += 18;
-                        reasons.push(format!("outbound connection to malicious destination {}:{}", remote_address, remote_port));
+                        reasons.push(format!(
+                            "outbound connection to malicious destination {}:{}",
+                            remote_address, remote_port
+                        ));
                     }
                 }
 
@@ -573,7 +589,10 @@ impl CoreVanguardEngine {
                     ledger.beacon_count += 1;
                     if *interval <= 120 {
                         tier2_score += 14;
-                        reasons.push(format!("beacon cadence detected every {} seconds", interval));
+                        reasons.push(format!(
+                            "beacon cadence detected every {} seconds",
+                            interval
+                        ));
                     }
                 }
 
@@ -583,9 +602,7 @@ impl CoreVanguardEngine {
                 }
             }
             BehavioralEvent::SelfProtectionEvent {
-                target,
-                technique,
-                ..
+                target, technique, ..
             } => {
                 tier1_score += 18;
                 tier2_score += 18;
@@ -652,8 +669,16 @@ impl CoreVanguardEngine {
         }
 
         let stateful_bonus = (ledger.cumulative_score / 6)
-            + if ledger.high_entropy_writes >= 5 { 12 } else { 0 }
-            + if ledger.cross_process_threads >= 2 { 10 } else { 0 }
+            + if ledger.high_entropy_writes >= 5 {
+                12
+            } else {
+                0
+            }
+            + if ledger.cross_process_threads >= 2 {
+                10
+            } else {
+                0
+            }
             + if ledger.beacon_count >= 3 { 8 } else { 0 };
 
         let total_score = tier1_score + tier2_score + tier3_score + stateful_bonus;
@@ -745,7 +770,10 @@ impl CoreVanguardEngine {
                     "linux.ebpf_guard",
                     "Linux eBPF Guard",
                     ProviderDomain::LinuxKernel,
-                    vec![ProviderCapability::SelfProtection, ProviderCapability::ThreadOriginValidation],
+                    vec![
+                        ProviderCapability::SelfProtection,
+                        ProviderCapability::ThreadOriginValidation,
+                    ],
                     "Awaiting eBPF self-protection adapter heartbeat.",
                 );
                 self.register_expected_provider(
@@ -811,14 +839,17 @@ impl CoreVanguardEngine {
 
     fn ensure_provider_for_event(&mut self, event: &BehavioralEvent) {
         let provider_id = event.provider_id().to_string();
-        let entry = self.providers.entry(provider_id.clone()).or_insert(ProviderRuntime {
-            label: provider_id.clone(),
-            domain: ProviderDomain::External,
-            capabilities: Vec::new(),
-            state: ComponentState::Online,
-            detail: "Provider registered dynamically through event ingestion.".to_string(),
-            last_heartbeat_unix: Some(unix_timestamp_secs()),
-        });
+        let entry = self
+            .providers
+            .entry(provider_id.clone())
+            .or_insert(ProviderRuntime {
+                label: provider_id.clone(),
+                domain: ProviderDomain::External,
+                capabilities: Vec::new(),
+                state: ComponentState::Online,
+                detail: "Provider registered dynamically through event ingestion.".to_string(),
+                last_heartbeat_unix: Some(unix_timestamp_secs()),
+            });
 
         entry.state = ComponentState::Online;
         entry.last_heartbeat_unix = Some(unix_timestamp_secs());
@@ -937,11 +968,7 @@ impl CoreVanguardEngine {
                 if let Some(decision) = self.recent_decisions.front() {
                     (
                         "Emergency containment active".to_string(),
-                        format!(
-                            "{}. {}",
-                            decision.title,
-                            decision.reasons.join("; ")
-                        ),
+                        format!("{}. {}", decision.title, decision.reasons.join("; ")),
                     )
                 } else {
                     (
@@ -952,10 +979,7 @@ impl CoreVanguardEngine {
             }
             ProtectionLevel::Monitoring => (
                 "Engine core online".to_string(),
-                format!(
-                    "{} {}",
-                    provider_service.detail, pipeline_service.detail
-                ),
+                format!("{} {}", provider_service.detail, pipeline_service.detail),
             ),
             ProtectionLevel::Secure => (
                 "Protection pipeline online".to_string(),
@@ -1027,9 +1051,9 @@ impl CoreVanguardEngine {
         let perf_capacity = self.host.performance_lanes.max(1) as f32;
         let eff_capacity = self.host.efficiency_lanes.max(1) as f32;
 
-        let performance_cores =
-            ((critical_cases as f32 * 40.0 + active_cases as f32 * 10.0) / perf_capacity)
-                .clamp(0.0, 100.0) as u8;
+        let performance_cores = ((critical_cases as f32 * 40.0 + active_cases as f32 * 10.0)
+            / perf_capacity)
+            .clamp(0.0, 100.0) as u8;
         let efficiency_cores =
             ((background_jobs as f32 * 12.0) / eff_capacity).clamp(0.0, 100.0) as u8;
 
@@ -1129,7 +1153,9 @@ impl BehavioralEvent {
                 remote_port,
                 ..
             } => format!("Outbound connection to {}:{}", remote_address, remote_port),
-            BehavioralEvent::SelfProtectionEvent { target, technique, .. } => {
+            BehavioralEvent::SelfProtectionEvent {
+                target, technique, ..
+            } => {
                 format!("Self-protection event {:?} against {}", technique, target)
             }
             BehavioralEvent::ModuleIntegrity { module_name, .. } => {

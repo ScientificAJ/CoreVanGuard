@@ -2,6 +2,7 @@ use anyhow::{bail, Context};
 use std::env;
 use std::fs;
 use std::io::{self, Read};
+use std::path::Path;
 
 fn main() -> anyhow::Result<()> {
     let mut args = env::args().skip(1);
@@ -41,8 +42,32 @@ fn main() -> anyhow::Result<()> {
             let report = corevanguard_agent::linux_provider::run_host_scan(limit)?;
             println!("{}", serde_json::to_string_pretty(&report)?);
         }
+        Some("linux-ebpf-json") => {
+            let payload = read_payload(args.next().as_deref())?;
+            let outcomes = corevanguard_agent::linux_provider::ingest_bpf_jsonl(&payload)?;
+            println!("{}", serde_json::to_string_pretty(&outcomes)?);
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&corevanguard_agent::dashboard_snapshot())?
+            );
+        }
+        Some("linux-ebpf-run") => {
+            let limit = args
+                .next()
+                .as_deref()
+                .and_then(|value| value.parse::<usize>().ok())
+                .unwrap_or(16);
+            let loader_path = args.next();
+            let object_path = args.next();
+            let report = corevanguard_agent::linux_provider::run_ebpf_loader(
+                limit,
+                loader_path.as_deref().map(Path::new),
+                object_path.as_deref().map(Path::new),
+            )?;
+            println!("{}", serde_json::to_string_pretty(&report)?);
+        }
         Some(other) => bail!(
-            "unknown command '{}'. expected one of: snapshot, ingest-json, provider-heartbeat, replay-jsonl, linux-scan",
+            "unknown command '{}'. expected one of: snapshot, ingest-json, provider-heartbeat, replay-jsonl, linux-scan, linux-ebpf-json, linux-ebpf-run",
             other
         ),
     }

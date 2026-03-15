@@ -4,13 +4,23 @@ use crate::{
     ProviderDomain, ProviderHeartbeat, Reputation, SelfProtectionTechnique, SignatureState,
     ThreadOrigin,
 };
-use anyhow::{Context, Result};
+use anyhow::{bail, Context, Result};
 use procfs::process::{all_processes, Process};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::fs;
+use std::io::{BufRead, BufReader};
 use std::net::{Ipv4Addr, Ipv6Addr};
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use std::process::{Command, Stdio};
+
+const CVG_EXEC: u32 = 0;
+const CVG_OPEN: u32 = 1;
+const CVG_WRITE: u32 = 2;
+const CVG_KILL: u32 = 3;
+const CVG_PTRACE: u32 = 4;
+const DEFAULT_BPF_OBJECT_PATH: &str = "kernel/linux/out/corevanguard.bpf.o";
+const DEFAULT_BPF_LOADER_PATH: &str = "kernel/linux/out/corevanguard-ebpf-loader";
 
 #[derive(Debug, Clone, Serialize)]
 pub struct LinuxProviderScanReport {
@@ -20,6 +30,25 @@ pub struct LinuxProviderScanReport {
     pub snapshot: DashboardSnapshot,
 }
 
+#[derive(Debug, Clone, Serialize)]
+pub struct LinuxBpfRunReport {
+    pub loader_path: String,
+    pub object_path: String,
+    pub events_observed: usize,
+    pub events_ingested: usize,
+    pub decisions: Vec<DecisionOutcome>,
+    pub snapshot: DashboardSnapshot,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LinuxBpfEvent {
+    pub pid: u32,
+    pub tgid: u32,
+    pub uid: u32,
+    pub kind: u32,
+    pub count: u64,
+}
+
 #[derive(Debug, Clone)]
 struct SocketEntry {
     remote_address: String,
@@ -27,7 +56,7 @@ struct SocketEntry {
 }
 
 pub fn run_host_scan(limit: usize) -> Result<LinuxProviderScanReport> {
-    let providers = provider_heartbeats();
+    let providers = provider_heartbeats(false);
     for heartbeat in providers.iter().cloned() {
         let _ = apply_provider_heartbeat(heartbeat)?;
     }
@@ -67,7 +96,112 @@ pub fn run_host_scan(limit: usize) -> Result<LinuxProviderScanReport> {
     })
 }
 
-fn provider_heartbeats() -> Vec<ProviderHeartbeat> {
+pub fn run_ebpf_loader(
+    max_events: usize,
+    loader_path: Option<&Path>,
+    object_path: Option<&Path>,
+) -> Result<LinuxBpfRunReport> {
+    let loader_path = loader_path
+        .map(Path::to_path_buf)
+        .unwrap_or_else(|| PathBuf::from(DEFAULT_BPF_LOADER_PATH));
+    let object_path = object_path
+        .map(Path::to_path_buf)
+        .unwrap_or_else(|| PathBuf::from(DEFAULT_BPF_OBJECT_PATH));
+
+    if !loader_path.is_file() {
+        bail!("eBPF loader not found: {}", loader_path.display());
+    }
+
+    if !object_path.is_file() {
+        bail!("eBPF object not found: {}", object_path.display());
+    }
+
+    let providers = provider_heartbeats(true);
+    for heartbeat in providers.iter().cloned() {
+        let _ = apply_provider_heartbeat(heartbeat)?;
+    }
+
+    if max_events == 0 {
+        return Ok(LinuxBpfRunReport {
+            loader_path: loader_path.display().to_string(),
+            object_path: object_path.display().to_string(),
+            events_observed: 0,
+            events_ingested: 0,
+            decisions: Vec::new(),
+            snapshot: dashboard_snapshot(),
+        });
+    }
+
+    let mut child = Command::new(&loader_path)
+        .arg(&object_path)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::inherit())
+        .spawn()
+        .with_context(|| format!("failed to spawn {}", loader_path.display()))?;
+    let stdout = child
+        .stdout
+        .take()
+        .context("failed to capture eBPF loader stdout")?;
+    let reader = BufReader::new(stdout);
+
+    let mut events_observed = 0usize;
+    let mut events_ingested = 0usize;
+    let mut decisions = Vec::new();
+
+    for line in reader.lines() {
+        let line = line.context("failed to read eBPF loader output")?;
+        let trimmed = line.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+
+        let event: LinuxBpfEvent = serde_json::from_str(trimmed)
+            .with_context(|| format!("failed to parse eBPF loader line: {}", trimmed))?;
+        events_observed += 1;
+
+        if let Some(behavioral) = translate_bpf_event(&event) {
+            decisions.push(ingest_behavioral_event(behavioral)?);
+            events_ingested += 1;
+        }
+
+        if events_observed >= max_events {
+            break;
+        }
+    }
+
+    let _ = child.kill();
+    let status = child.wait().context("failed waiting for eBPF loader")?;
+    if events_observed == 0 && !status.success() {
+        bail!("eBPF loader exited without events: {}", status);
+    }
+
+    Ok(LinuxBpfRunReport {
+        loader_path: loader_path.display().to_string(),
+        object_path: object_path.display().to_string(),
+        events_observed,
+        events_ingested,
+        decisions,
+        snapshot: dashboard_snapshot(),
+    })
+}
+
+pub fn ingest_bpf_jsonl(payload: &str) -> Result<Vec<DecisionOutcome>> {
+    let mut outcomes = Vec::new();
+    for line in payload.lines() {
+        let trimmed = line.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+
+        let event: LinuxBpfEvent = serde_json::from_str(trimmed)?;
+        if let Some(behavioral) = translate_bpf_event(&event) {
+            outcomes.push(ingest_behavioral_event(behavioral)?);
+        }
+    }
+    Ok(outcomes)
+}
+
+fn provider_heartbeats(live_ebpf: bool) -> Vec<ProviderHeartbeat> {
     vec![
         ProviderHeartbeat {
             id: "linux.file_gate".to_string(),
@@ -86,9 +220,18 @@ fn provider_heartbeats() -> Vec<ProviderHeartbeat> {
                 ProviderCapability::ThreadOriginValidation,
                 ProviderCapability::SelfProtection,
             ],
-            state: ComponentState::Degraded,
-            detail: "Process, memory map, and ptrace heuristics are being collected from /proc."
-                .to_string(),
+            state: if live_ebpf {
+                ComponentState::Online
+            } else {
+                ComponentState::Degraded
+            },
+            detail: if live_ebpf {
+                "Raw tracepoint loader attached. Syscall events are streaming into the engine."
+                    .to_string()
+            } else {
+                "Process, memory map, and ptrace heuristics are being collected from /proc."
+                    .to_string()
+            },
         },
         ProviderHeartbeat {
             id: "linux.netfilter".to_string(),
@@ -100,6 +243,41 @@ fn provider_heartbeats() -> Vec<ProviderHeartbeat> {
                 .to_string(),
         },
     ]
+}
+
+fn translate_bpf_event(event: &LinuxBpfEvent) -> Option<BehavioralEvent> {
+    let process_name =
+        read_process_name(event.tgid).unwrap_or_else(|| format!("pid-{}", event.tgid));
+    let exe_path = read_process_exe(event.tgid).unwrap_or_else(|| "<unknown>".to_string());
+
+    match event.kind {
+        CVG_EXEC => Some(BehavioralEvent::ExecutionStart {
+            provider_id: "linux.ebpf_guard".to_string(),
+            process_id: event.tgid,
+            process_name,
+            image_path: exe_path.clone(),
+            parent_process: parent_name_from_pid(event.tgid).ok().flatten(),
+            launched_from_user_space: is_user_writable_path(&exe_path),
+            signature_state: classify_linux_signature(&exe_path),
+            requested_persistence: indicates_persistence(&exe_path),
+        }),
+        CVG_KILL => Some(BehavioralEvent::SelfProtectionEvent {
+            provider_id: "linux.ebpf_guard".to_string(),
+            process_id: event.tgid,
+            process_name,
+            target: "signal target unavailable from raw tracepoint payload".to_string(),
+            technique: SelfProtectionTechnique::KillSignal,
+        }),
+        CVG_PTRACE => Some(BehavioralEvent::SelfProtectionEvent {
+            provider_id: "linux.ebpf_guard".to_string(),
+            process_id: event.tgid,
+            process_name,
+            target: "ptrace target unavailable from raw tracepoint payload".to_string(),
+            technique: SelfProtectionTechnique::Ptrace,
+        }),
+        CVG_OPEN | CVG_WRITE => None,
+        _ => None,
+    }
 }
 
 fn collect_process_events(
@@ -204,6 +382,12 @@ fn parent_name(ppid: i32) -> Result<Option<String>> {
     Ok(parent.stat().ok().map(|stat| stat.comm))
 }
 
+fn parent_name_from_pid(pid: u32) -> Result<Option<String>> {
+    let process = Process::new(pid as i32)?;
+    let stat = process.stat()?;
+    parent_name(stat.ppid)
+}
+
 fn is_user_writable_path(path: &str) -> bool {
     ["/tmp/", "/var/tmp/", "/dev/shm/", "/home/", "/run/user/"]
         .iter()
@@ -241,6 +425,74 @@ fn classify_linux_signature(path: &str) -> SignatureState {
         SignatureState::Trusted
     } else {
         SignatureState::Unsigned
+    }
+}
+
+fn read_process_name(pid: u32) -> Option<String> {
+    Process::new(pid as i32)
+        .ok()?
+        .stat()
+        .ok()
+        .map(|stat| stat.comm)
+}
+
+fn read_process_exe(pid: u32) -> Option<String> {
+    Process::new(pid as i32)
+        .ok()?
+        .exe()
+        .ok()
+        .map(|path| path.display().to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::os::unix::fs::PermissionsExt;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    #[test]
+    fn bpf_exec_event_translates_to_execution_start() {
+        let event = LinuxBpfEvent {
+            pid: 1,
+            tgid: 1,
+            uid: 0,
+            kind: CVG_EXEC,
+            count: 1,
+        };
+
+        let translated = translate_bpf_event(&event);
+        assert!(matches!(
+            translated,
+            Some(BehavioralEvent::ExecutionStart { .. })
+        ));
+    }
+
+    #[test]
+    fn ebpf_loader_runner_ingests_json_lines() {
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let temp_dir = std::env::temp_dir().join(format!("corevanguard-ebpf-test-{}", unique));
+        fs::create_dir_all(&temp_dir).unwrap();
+
+        let loader_path = temp_dir.join("fake-loader.sh");
+        let object_path = temp_dir.join("fake-object.bpf.o");
+        let pid = std::process::id();
+        let script = format!(
+            "#!/bin/sh\nprintf '{{\"pid\":{pid},\"tgid\":{pid},\"uid\":1000,\"kind\":0,\"count\":1}}\\n'\n"
+        );
+
+        fs::write(&loader_path, script).unwrap();
+        fs::set_permissions(&loader_path, fs::Permissions::from_mode(0o755)).unwrap();
+        fs::write(&object_path, "fixture").unwrap();
+
+        let report = run_ebpf_loader(1, Some(&loader_path), Some(&object_path)).unwrap();
+        assert_eq!(report.events_observed, 1);
+        assert_eq!(report.events_ingested, 1);
+        assert_eq!(report.decisions.len(), 1);
+
+        let _ = fs::remove_dir_all(&temp_dir);
     }
 }
 

@@ -1,3 +1,5 @@
+use std::path::Path;
+
 #[tauri::command]
 fn get_dashboard_snapshot() -> corevanguard_agent::DashboardSnapshot {
     corevanguard_agent::dashboard_snapshot()
@@ -11,7 +13,24 @@ fn run_linux_provider_scan(limit: Option<usize>) -> Result<serde_json::Value, St
 }
 
 #[tauri::command]
-fn ingest_behavioral_event(event_json: String) -> Result<corevanguard_agent::DecisionOutcome, String> {
+fn run_linux_ebpf_loader(
+    limit: Option<usize>,
+    loader_path: Option<String>,
+    object_path: Option<String>,
+) -> Result<serde_json::Value, String> {
+    let report = corevanguard_agent::linux_provider::run_ebpf_loader(
+        limit.unwrap_or(16),
+        loader_path.as_deref().map(Path::new),
+        object_path.as_deref().map(Path::new),
+    )
+    .map_err(|error| error.to_string())?;
+    serde_json::to_value(report).map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+fn ingest_behavioral_event(
+    event_json: String,
+) -> Result<corevanguard_agent::DecisionOutcome, String> {
     corevanguard_agent::ingest_behavioral_event_json(&event_json).map_err(|error| error.to_string())
 }
 
@@ -35,6 +54,7 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             get_dashboard_snapshot,
             run_linux_provider_scan,
+            run_linux_ebpf_loader,
             ingest_behavioral_event,
             register_provider_heartbeat,
             configure_vault_key
