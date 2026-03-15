@@ -1,9 +1,10 @@
 export type ProtectionLevel = "secure" | "monitoring" | "lockdown";
-export type DataMode = "seeded" | "live";
+export type ComponentState = "online" | "offline" | "degraded" | "unconfigured";
+export type ContractProvider = "desktop_contract" | "browser_preview";
 
-export interface StatusCard {
+export interface ServiceStatus {
   label: string;
-  value: string;
+  state: ComponentState;
   detail: string;
 }
 
@@ -21,13 +22,33 @@ export interface DetectionEvent {
   action: string;
 }
 
+export interface TelemetryFeed {
+  state: ComponentState;
+  reason: string;
+  points: TelemetryPoint[];
+}
+
+export interface DiagnosticsFeed {
+  state: ComponentState;
+  reason: string;
+  events: DetectionEvent[];
+}
+
+export interface VaultStatus {
+  state: ComponentState;
+  detail: string;
+}
+
 export interface DashboardSnapshot {
-  data_mode: DataMode;
-  data_note: string;
+  contract_version: number;
+  provider: ContractProvider;
+  generated_at_unix: number;
+  platform: string;
   status: ProtectionLevel;
   headline: string;
   message: string;
-  cards: StatusCard[];
-  telemetry: TelemetryPoint[];
-  detections: DetectionEvent[];
+  services: ServiceStatus[];
+  telemetry: TelemetryFeed;
+  diagnostics: DiagnosticsFeed;
+  vault: VaultStatus;
 }

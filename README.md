@@ -39,7 +39,7 @@ What does not exist yet:
 
 ## Repo Notes
 
-- The frontend explicitly labels seeded development telemetry so GitHub readers do not mistake it for live engine data.
+- The frontend consumes an availability-based dashboard contract and only renders live telemetry when a provider is actually attached.
 - The Windows workflow expects `kernel/windows/CoreVanguardMiniFilter.sln` once you add the real driver project.
 - Signing preparation lives in [docs/security/code-signing.md](docs/security/code-signing.md).
 

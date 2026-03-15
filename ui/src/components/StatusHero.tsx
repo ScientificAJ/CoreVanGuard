@@ -1,4 +1,4 @@
-import type { DashboardSnapshot } from "../lib/types";
+import type { ComponentState, DashboardSnapshot } from "../lib/types";
 
 const toneMap: Record<
   DashboardSnapshot["status"],
@@ -19,6 +19,13 @@ const toneMap: Record<
     ring: "border-ember/60 shadow-[0_0_40px_rgba(255,139,106,0.3)]",
     label: "Emergency Lockdown"
   }
+};
+
+const stateToneMap: Record<ComponentState, string> = {
+  online: "bg-signal/15 text-signal",
+  offline: "bg-ember/15 text-ember",
+  degraded: "bg-amber/15 text-amber",
+  unconfigured: "bg-slate-500/15 text-slate-300"
 };
 
 interface StatusHeroProps {
@@ -45,14 +52,25 @@ export function StatusHero({ snapshot }: StatusHeroProps) {
             </p>
           </div>
           <div className="grid gap-4 sm:grid-cols-3">
-            {snapshot.cards.map((card) => (
+            {snapshot.services.map((service) => (
               <article
-                key={card.label}
+                key={service.label}
                 className="rounded-3xl border border-white/10 bg-white/5 p-5 backdrop-blur"
               >
-                <p className="text-xs uppercase tracking-[0.24em] text-slate-400">{card.label}</p>
-                <p className="mt-3 font-display text-3xl font-semibold text-white">{card.value}</p>
-                <p className="mt-2 text-sm text-slate-300">{card.detail}</p>
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-xs uppercase tracking-[0.24em] text-slate-400">
+                    {service.label}
+                  </p>
+                  <span
+                    className={`rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] ${stateToneMap[service.state]}`}
+                  >
+                    {service.state}
+                  </span>
+                </div>
+                <p className="mt-3 font-display text-3xl font-semibold text-white">
+                  {service.state === "online" ? "Connected" : service.state}
+                </p>
+                <p className="mt-2 text-sm text-slate-300">{service.detail}</p>
               </article>
             ))}
           </div>
@@ -64,7 +82,7 @@ export function StatusHero({ snapshot }: StatusHeroProps) {
             <span className="text-sm uppercase tracking-[0.38em] text-slate-400">Defense Core</span>
             <span className="mt-4 font-display text-5xl font-bold text-white">{tone.label}</span>
             <span className="mt-4 max-w-[13rem] text-sm leading-6 text-slate-300">
-              Kernel interception, adaptive scheduling, and rollback protections are synchronized.
+              Provider: {snapshot.provider.replace(/_/g, " ")}. Platform: {snapshot.platform}.
             </span>
           </div>
         </div>
@@ -72,4 +90,3 @@ export function StatusHero({ snapshot }: StatusHeroProps) {
     </section>
   );
 }
-

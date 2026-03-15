@@ -9,8 +9,12 @@ export function VaultPanel() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const message = await enrollVaultKey(label);
-    setResult(message);
+    try {
+      const message = await enrollVaultKey(label);
+      setResult(message);
+    } catch (error) {
+      setResult(error instanceof Error ? error.message : "Vault enrollment failed.");
+    }
   }
 
   return (

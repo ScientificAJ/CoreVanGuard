@@ -65,10 +65,12 @@ export default function App() {
           </nav>
         </header>
 
-        {snapshot.data_mode !== "live" && (
+        {snapshot.provider !== "desktop_contract" && (
           <section className="rounded-[1.5rem] border border-amber/30 bg-amber/10 px-5 py-4 text-sm text-amber">
-            <span className="font-semibold uppercase tracking-[0.18em]">Development data</span>
-            <span className="ml-3 text-slate-200">{snapshot.data_note}</span>
+            <span className="font-semibold uppercase tracking-[0.18em]">Preview mode</span>
+            <span className="ml-3 text-slate-200">
+              This render is not attached to the desktop IPC bridge or kernel data producers.
+            </span>
           </section>
         )}
 
@@ -76,7 +78,7 @@ export default function App() {
 
         {tab === "overview" && <TelemetryPanel telemetry={snapshot.telemetry} />}
         {tab === "vault" && <VaultPanel />}
-        {tab === "diagnostics" && <DiagnosticsPanel detections={snapshot.detections} />}
+        {tab === "diagnostics" && <DiagnosticsPanel diagnostics={snapshot.diagnostics} />}
       </div>
     </main>
   );
