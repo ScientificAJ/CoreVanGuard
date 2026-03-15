@@ -1,0 +1,36 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color: #f8fafc;
+  background:
+    radial-gradient(circle at top, rgba(110, 255, 155, 0.08), transparent 26%),
+    linear-gradient(180deg, #0b1525 0%, #07111f 100%);
+  font-family: "Sora", "Segoe UI", sans-serif;
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+@layer components {
+  .panel {
+    @apply rounded-[2rem] border border-white/10 bg-white/5 p-6 shadow-glow backdrop-blur md:p-8;
+  }
+
+  .glass-nav {
+    @apply rounded-[2rem] border border-white/10 bg-slate-950/70 p-5 shadow-glow backdrop-blur;
+  }
+
+  .eyebrow {
+    @apply text-xs uppercase tracking-[0.28em] text-slate-400;
+  }
+}
+

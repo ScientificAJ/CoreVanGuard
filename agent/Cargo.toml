@@ -1,0 +1,19 @@
+[package]
+name = "corevanguard-agent"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "corevanguard_agent"
+path = "src/lib.rs"
+
+[[bin]]
+name = "corevanguard-agent"
+path = "src/main.rs"
+
+[dependencies]
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+

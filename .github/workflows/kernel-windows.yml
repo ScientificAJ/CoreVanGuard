@@ -1,0 +1,40 @@
+name: Kernel Windows
+
+on:
+  push:
+    paths:
+      - "kernel/windows/**"
+      - "scripts/build-windows-driver.ps1"
+      - ".github/workflows/kernel-windows.yml"
+  pull_request:
+    paths:
+      - "kernel/windows/**"
+      - "scripts/build-windows-driver.ps1"
+      - ".github/workflows/kernel-windows.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-driver:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: microsoft/setup-msbuild@v2
+
+      - uses: NuGet/setup-nuget@v2
+
+      - name: Import development test certificate
+        if: ${{ secrets.WINDOWS_TEST_CERT_BASE64 != '' && secrets.WINDOWS_TEST_CERT_PASSWORD != '' }}
+        shell: pwsh
+        run: |
+          $bytes = [Convert]::FromBase64String("${{ secrets.WINDOWS_TEST_CERT_BASE64 }}")
+          $path = Join-Path $env:RUNNER_TEMP "corevanguard-dev-cert.pfx"
+          [IO.File]::WriteAllBytes($path, $bytes)
+          Import-PfxCertificate -FilePath $path -Password (ConvertTo-SecureString "${{ secrets.WINDOWS_TEST_CERT_PASSWORD }}" -AsPlainText -Force) -CertStoreLocation Cert:\CurrentUser\My
+
+      - name: Build MiniFilter target
+        shell: pwsh
+        run: ./scripts/build-windows-driver.ps1

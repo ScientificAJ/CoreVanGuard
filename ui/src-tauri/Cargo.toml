@@ -1,0 +1,15 @@
+[package]
+name = "corevanguard-ui-shell"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+corevanguard-agent = { path = "../../agent" }
+serde.workspace = true
+serde_json.workspace = true
+tauri = { version = "2", features = [] }
+

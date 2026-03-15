@@ -1,0 +1,37 @@
+name: Kernel Linux
+
+on:
+  push:
+    paths:
+      - "kernel/linux/**"
+      - "scripts/build-linux-ebpf.sh"
+      - ".github/workflows/kernel-linux.yml"
+  pull_request:
+    paths:
+      - "kernel/linux/**"
+      - "scripts/build-linux-ebpf.sh"
+      - ".github/workflows/kernel-linux.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-ebpf:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install eBPF toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang llvm libbpf-dev
+
+      - name: Compile BPF objects
+        run: bash scripts/build-linux-ebpf.sh
+
+      - name: Upload BPF artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: corevanguard-linux-bpf
+          path: kernel/linux/out/

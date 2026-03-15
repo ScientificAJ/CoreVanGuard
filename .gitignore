@@ -1,0 +1,28 @@
+.DS_Store
+.idea/
+.vscode/
+dist/
+node_modules/
+target/
+coverage/
+*.log
+*.pid
+*.tmp
+*.swp
+
+# Tauri build outputs
+ui/dist/
+ui/src-tauri/target/
+
+# Native build artifacts
+kernel/linux/out/
+kernel/windows/out/
+kernel/macos/out/
+
+# Signing material
+*.p12
+*.pfx
+*.cer
+*.key
+*.mobileprovision
+*.entitlements

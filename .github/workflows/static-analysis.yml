@@ -1,0 +1,64 @@
+name: Static Analysis
+
+on:
+  push:
+    paths:
+      - "agent/**"
+      - "kernel/**"
+      - "ui/src-tauri/**"
+      - "Cargo.toml"
+      - "rust-toolchain.toml"
+      - ".github/workflows/static-analysis.yml"
+  pull_request:
+    paths:
+      - "agent/**"
+      - "kernel/**"
+      - "ui/src-tauri/**"
+      - "Cargo.toml"
+      - "rust-toolchain.toml"
+      - ".github/workflows/static-analysis.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rust-clippy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Install Linux system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+
+      - name: Run clippy on Rust workspace
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+  linux-clang-tidy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install clang-tidy
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-tidy libbpf-dev
+
+      - name: Analyze eBPF source
+        run: |
+          clang-tidy kernel/linux/bpf/corevanguard.bpf.c -- -target bpf -I/usr/include -I/usr/include/x86_64-linux-gnu
+
+  macos-clang-tidy:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Analyze Endpoint Security source
+        run: |
+          clang-tidy kernel/macos/CoreVanguardES/main.mm -- -std=c++17 -fobjc-arc -framework Foundation -framework EndpointSecurity
