@@ -24,12 +24,12 @@ export function TelemetryPanel({ telemetry }: TelemetryPanelProps) {
         <div>
           <p className="eyebrow">Hardware-aware visualizer</p>
           <h2 className="font-display text-3xl font-semibold text-white">
-            Adaptive threading across performance and efficiency cores
+            Adaptive analysis lanes across the detected host topology
           </h2>
         </div>
         <p className="max-w-xl text-sm leading-6 text-slate-300">
-          Tier 3 analysis should stay off interactive workloads. This view makes the scheduling
-          story legible instead of hidden behind an optimizer black box.
+          Tier 3 analysis should stay off interactive workloads. These values are derived from the
+          engine scheduler and host CPU profile instead of hard-coded demo metrics.
         </p>
       </div>
       <div className="mt-8 grid gap-8 lg:grid-cols-[1.15fr_0.85fr]">
@@ -97,13 +97,13 @@ export function TelemetryPanel({ telemetry }: TelemetryPanelProps) {
                 </div>
                 <div className="mt-4 grid grid-cols-3 gap-3 text-sm">
                   <div className="rounded-2xl bg-slate-950/60 p-3">
-                    <p className="text-slate-400">Performance cores</p>
+                    <p className="text-slate-400">Latency lane</p>
                     <p className="mt-1 text-xl font-semibold text-signal">
                       {point.performance_cores}%
                     </p>
                   </div>
                   <div className="rounded-2xl bg-slate-950/60 p-3">
-                    <p className="text-slate-400">Efficiency cores</p>
+                    <p className="text-slate-400">Background lane</p>
                     <p className="mt-1 text-xl font-semibold text-amber">
                       {point.efficiency_cores}%
                     </p>

@@ -22,20 +22,20 @@ CoreVanguard is a monorepo for a next-generation antivirus stack that splits ker
 
 This repository is an honest starter, not a finished antivirus engine. What exists today:
 
-- `agent/` contains the Rust IPC/data contract used by the desktop shell.
+- `agent/` contains a real engine core with provider registration, behavioral event ingestion, tiered scoring, stateful process risk tracking, JSON replay support, and dashboard snapshot generation.
 - `ui/` contains a real Tauri + React frontend structure with a dashboard, telemetry view, vault settings surface, and diagnostics tab.
-- `ui/src-tauri/` exposes Tauri commands and compiles against the shared Rust contract.
+- `ui/src-tauri/` exposes Tauri commands against the shared Rust engine contract, including snapshot retrieval, provider heartbeats, and behavioral event ingestion.
 - `kernel/linux/` contains a minimal BPF program and build script proving the Linux pipeline shape.
 - `kernel/macos/` contains a minimal Endpoint Security compile target proving the macOS pipeline shape.
 - `.github/workflows/` contains CI definitions for Windows, Linux, macOS, Tauri, and static analysis.
 
 What does not exist yet:
 
-- Live behavioral telemetry from kernel or user-mode services into the UI
+- OS-native provider adapters that publish real kernel or user-mode events into the engine
 - A checked-in Windows WDK solution/project
 - Production signing/notarization material
 - The native secure-entry bridge for vault key enrollment
-- Real interception logic, rollback logic, or cross-platform policy enforcement
+- Cross-platform enforcement adapters for block, freeze, or lockdown actions
 
 ## Repo Notes
 
@@ -49,6 +49,8 @@ What does not exist yet:
 
 ```bash
 cargo check -p corevanguard-agent
+cargo test -p corevanguard-agent
+cargo run -p corevanguard-agent -- snapshot
 ```
 
 ### UI
@@ -57,6 +59,12 @@ cargo check -p corevanguard-agent
 cd ui
 npm install
 npm run tauri:dev
+```
+
+### Event Replay
+
+```bash
+cargo run -p corevanguard-agent -- replay-jsonl events.jsonl
 ```
 
 ## Signing Prep
