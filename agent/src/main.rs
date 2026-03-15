@@ -19,6 +19,16 @@ fn main() -> anyhow::Result<()> {
             let outcome = corevanguard_agent::ingest_behavioral_event_json(&payload)?;
             println!("{}", serde_json::to_string_pretty(&outcome)?);
         }
+        Some("ingest-json-enforce") => {
+            let payload = read_payload(args.next().as_deref())?;
+            let result =
+                corevanguard_agent::ingest_behavioral_event_with_enforcement_json(&payload)?;
+            println!("{}", serde_json::to_string_pretty(&result)?);
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&corevanguard_agent::dashboard_snapshot())?
+            );
+        }
         Some("provider-heartbeat") => {
             let payload = read_payload(args.next().as_deref())?;
             let snapshot = corevanguard_agent::apply_provider_heartbeat_json(&payload)?;
@@ -66,8 +76,23 @@ fn main() -> anyhow::Result<()> {
             )?;
             println!("{}", serde_json::to_string_pretty(&report)?);
         }
+        Some("secure-vault-enroll") => {
+            let label = args
+                .next()
+                .context("secure-vault-enroll requires a vault profile label")?;
+            let bridge_program = args.next();
+            let message = corevanguard_agent::configure_vault_key_secure(
+                &label,
+                bridge_program.as_deref().map(Path::new),
+            )?;
+            println!("{}", message);
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&corevanguard_agent::dashboard_snapshot())?
+            );
+        }
         Some(other) => bail!(
-            "unknown command '{}'. expected one of: snapshot, ingest-json, provider-heartbeat, replay-jsonl, linux-scan, linux-ebpf-json, linux-ebpf-run",
+            "unknown command '{}'. expected one of: snapshot, ingest-json, ingest-json-enforce, provider-heartbeat, replay-jsonl, linux-scan, linux-ebpf-json, linux-ebpf-run, secure-vault-enroll",
             other
         ),
     }

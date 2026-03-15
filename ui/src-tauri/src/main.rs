@@ -35,6 +35,14 @@ fn ingest_behavioral_event(
 }
 
 #[tauri::command]
+fn ingest_behavioral_event_with_enforcement(
+    event_json: String,
+) -> Result<corevanguard_agent::IngestEnforcementResult, String> {
+    corevanguard_agent::ingest_behavioral_event_with_enforcement_json(&event_json)
+        .map_err(|error| error.to_string())
+}
+
+#[tauri::command]
 fn register_provider_heartbeat(
     heartbeat_json: String,
 ) -> Result<corevanguard_agent::DashboardSnapshot, String> {
@@ -49,6 +57,15 @@ fn configure_vault_key(label: String) -> Result<String, String> {
         .map_err(|error| error.to_string())
 }
 
+#[tauri::command]
+fn configure_vault_key_secure(
+    label: String,
+    bridge_program: Option<String>,
+) -> Result<String, String> {
+    corevanguard_agent::configure_vault_key_secure(&label, bridge_program.as_deref().map(Path::new))
+        .map_err(|error| error.to_string())
+}
+
 fn main() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
@@ -56,8 +73,10 @@ fn main() {
             run_linux_provider_scan,
             run_linux_ebpf_loader,
             ingest_behavioral_event,
+            ingest_behavioral_event_with_enforcement,
             register_provider_heartbeat,
-            configure_vault_key
+            configure_vault_key,
+            configure_vault_key_secure
         ])
         .run(tauri::generate_context!())
         .expect("failed to run CoreVanguard shell");

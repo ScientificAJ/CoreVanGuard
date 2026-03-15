@@ -383,6 +383,7 @@ name = "corevanguard-agent"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "libc",
  "procfs",
  "serde",
  "serde_json",

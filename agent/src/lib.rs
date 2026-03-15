@@ -1,10 +1,13 @@
 use anyhow::{anyhow, bail};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, VecDeque};
+use std::path::Path;
 use std::sync::{Mutex, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 
+pub mod enforcement;
 pub mod linux_provider;
+pub mod vault_bridge;
 
 const CONTRACT_VERSION: u16 = 2;
 const MAX_DECISIONS: usize = 24;
@@ -197,6 +200,12 @@ pub struct DecisionOutcome {
     pub total_score: i32,
     pub action: DecisionAction,
     pub reasons: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct IngestEnforcementResult {
+    pub decision: DecisionOutcome,
+    pub enforcement: enforcement::EnforcementReport,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -726,6 +735,21 @@ impl CoreVanguardEngine {
             "Secure-entry bridge is still missing, so the vault key cannot be enrolled yet."
                 .to_string();
         bail!("Native secure-entry bridge is not implemented yet.")
+    }
+
+    pub fn configure_vault_key_secure(
+        &mut self,
+        label: &str,
+        bridge_program: Option<&Path>,
+    ) -> anyhow::Result<String> {
+        let enrollment = vault_bridge::enroll_vault_key(label, bridge_program)?;
+        self.vault.configured_label = Some(label.trim().to_string());
+        self.vault.state = ComponentState::Online;
+        self.vault.detail = enrollment.detail;
+        Ok(format!(
+            "Vault key enrolled through secure bridge {}.",
+            enrollment.bridge
+        ))
     }
 
     fn register_builtin_providers(&mut self) {
@@ -1276,6 +1300,16 @@ pub fn configure_vault_key(label: &str) -> anyhow::Result<&'static str> {
         .configure_vault_key(label)
 }
 
+pub fn configure_vault_key_secure(
+    label: &str,
+    bridge_program: Option<&Path>,
+) -> anyhow::Result<String> {
+    global_engine()
+        .lock()
+        .map_err(|_| anyhow!("engine lock poisoned"))?
+        .configure_vault_key_secure(label, bridge_program)
+}
+
 pub fn apply_provider_heartbeat_json(payload: &str) -> anyhow::Result<DashboardSnapshot> {
     let heartbeat: ProviderHeartbeat = serde_json::from_str(payload)?;
     apply_provider_heartbeat(heartbeat)
@@ -1284,6 +1318,24 @@ pub fn apply_provider_heartbeat_json(payload: &str) -> anyhow::Result<DashboardS
 pub fn ingest_behavioral_event_json(payload: &str) -> anyhow::Result<DecisionOutcome> {
     let event: BehavioralEvent = serde_json::from_str(payload)?;
     ingest_behavioral_event(event)
+}
+
+pub fn ingest_behavioral_event_with_enforcement(
+    event: BehavioralEvent,
+) -> anyhow::Result<IngestEnforcementResult> {
+    let decision = ingest_behavioral_event(event)?;
+    let enforcement = enforcement::enforce_outcome(&decision)?;
+    Ok(IngestEnforcementResult {
+        decision,
+        enforcement,
+    })
+}
+
+pub fn ingest_behavioral_event_with_enforcement_json(
+    payload: &str,
+) -> anyhow::Result<IngestEnforcementResult> {
+    let event: BehavioralEvent = serde_json::from_str(payload)?;
+    ingest_behavioral_event_with_enforcement(event)
 }
 
 pub fn replay_behavioral_events_jsonl(payload: &str) -> anyhow::Result<Vec<DecisionOutcome>> {
